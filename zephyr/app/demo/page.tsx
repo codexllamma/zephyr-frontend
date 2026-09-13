@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import PipelineVisualizer from '@/components/dashboard/PipelineVisualiser';
 
 type LogEntry = {
   id: string;
@@ -177,7 +178,6 @@ export default function TerminalView() {
           transition={{ duration: 0.6, ease: "easeInOut" }}
           className="flex-1 flex flex-col w-full max-w-5xl relative"
         >
-          {/* THE FIX: Full-width absolute wrapper ensures perfect Flexbox centering */}
           <AnimatePresence>
             {(attackPhase === 'alert' || attackPhase === 'extracting') && (
               <div className="absolute top-16 left-0 w-full flex justify-center z-50 pointer-events-none">
@@ -229,7 +229,7 @@ export default function TerminalView() {
             <div 
               ref={terminalContainerRef}
               className={`p-4 overflow-y-auto flex-1 min-h-0 text-sm leading-relaxed tracking-tight ${
-                attackPhase === 'extracting' || attackPhase === 'pipeline' ? 'overflow-hidden flex flex-col justify-center items-center pt-24' : ''
+                attackPhase === 'extracting' || attackPhase === 'pipeline' ? 'overflow-x-hidden flex flex-col justify-start items-center pt-8' : ''
               } [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-[#0d1117] [&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full`}
             >
               <AnimatePresence>
@@ -250,7 +250,7 @@ export default function TerminalView() {
                       exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                       transition={{ duration: 0.5 }}
                       className={`mb-1 flex gap-3 px-1 rounded transition-colors ${
-                        (attackPhase === 'extracting' || attackPhase === 'pipeline') ? 'my-2 justify-center w-full' : 'hover:bg-gray-900/50'
+                        (attackPhase === 'extracting' || attackPhase === 'pipeline') ? 'my-2 justify-center w-full max-w-4xl' : 'hover:bg-gray-900/50'
                       }`}
                     >
                       <span className="text-gray-500 shrink-0">[{log.timestamp}]</span>
@@ -265,6 +265,12 @@ export default function TerminalView() {
                   );
                 })}
               </AnimatePresence>
+
+              {/* APPENDED HERE: Preserves layout, scrolls naturally beneath extracted logs */}
+              {attackPhase === 'pipeline' && activeIncident && (
+                <PipelineVisualizer incidentId={activeIncident} />
+              )}
+
             </div>
           </motion.div>
         </motion.div>
