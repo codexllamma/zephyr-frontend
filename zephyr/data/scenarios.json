@@ -2,10 +2,12 @@
   "scenarios": [
     {
       "id": "INC-001",
-      "title": "Log4Shell RCE (Tier 1)",
+      "title": "Log4Shell RCE",
       "target_asset": "Root IdP Certificate Server",
       "target_ip": "10.0.0.5",
       "is_tier_1": true,
+      "description": "Exploits vulnerable JNDI lookup headers (${jndi:ldap://...}) to trigger arbitrary remote code execution on the identity authentication service.",
+      "impact": "Full compromise of Tier 1 authentication infrastructure, enabling attacker impersonation across all enterprise single sign-on systems.",
       "logs": [
         { "type": "benign", "time": "14:22:10", "content": "INFO: Health check passed for 10.0.0.5 [latency 2.1ms]" },
         { "type": "benign", "time": "14:22:12", "content": "INFO: TLS session renewed with gateway.internal:443" },
@@ -22,10 +24,12 @@
     },
     {
       "id": "INC-002",
-      "title": "Blind SQL Injection & Exfiltration",
+      "title": "SQL Injection & Data Exfiltration",
       "target_asset": "Core Customer Billing DB",
       "target_ip": "10.0.1.15",
       "is_tier_1": false,
+      "description": "Injects malicious SQL union statements into search queries to bypass web application filters and dump database schema tables.",
+      "impact": "Mass exfiltration of sensitive customer billing data and potential database takeover, resulting in regulatory breach and data loss.",
       "logs": [
         { "type": "benign", "time": "14:25:01", "content": "INFO: Periodic database backup worker checkpoint completed" },
         { "type": "malicious", "time": "14:25:04", "content": "CRITICAL: HTTP 200 GET /api/v2/search?q=' UNION SELECT schema_name,2 FROM information_schema.schemata -- ;" },
@@ -41,10 +45,12 @@
     },
     {
       "id": "INC-003",
-      "title": "Kerberoasting & Ticket Forgery",
+      "title": "Kerberoasting Privilege Escalation",
       "target_asset": "Primary Domain Controller PDC-01",
       "target_ip": "10.0.0.1",
       "is_tier_1": true,
+      "description": "Extracts Kerberos TGS service tickets with weak legacy RC4 encryption for offline cryptographic cracking and password recovery.",
+      "impact": "Compromise of service accounts leading to domain admin privilege escalation and unauthorized Active Directory dominance.",
       "logs": [
         { "type": "benign", "time": "14:28:30", "content": "INFO: Kerberos TGT request issued for user svc_backup" },
         { "type": "malicious", "time": "14:28:33", "content": "CRITICAL: EventID 4769 - Anomalous TGS request RC4 encryption requested for SPN MSSQLSvc/db01.corp" },

@@ -1,35 +1,49 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+export async function GET(request: NextRequest) {
   const encoder = new TextEncoder();
   const logsDirectory = path.join(process.cwd(), 'data', 'raw_logs');
+  const searchParams = request.nextUrl.searchParams;
+  const requestedId = searchParams.get('id');
 
   try {
-    // Read all files in the raw_logs directory
     const files = await fs.readdir(logsDirectory);
-    
-    // Filter out hidden files (like .DS_Store) and grab the incident files
     const incidentFiles = files.filter(file => file.toLowerCase().includes('inc') || file.includes('syslog'));
 
     if (incidentFiles.length === 0) {
       return new Response("No incident logs found in data/raw_logs.", { status: 404 });
     }
 
-    // Pick a random incident file
-    const randomFileName = incidentFiles[Math.floor(Math.random() * incidentFiles.length)];
-    const filePath = path.join(logsDirectory, randomFileName);
+    let targetFileName = "";
+    if (requestedId) {
+      const match = incidentFiles.find(f => 
+        f.toLowerCase().includes(requestedId.toLowerCase()) || 
+        f.toLowerCase().includes(`inc-${requestedId.toLowerCase()}`) ||
+        f.toLowerCase().includes(`inc-0${requestedId.toLowerCase()}`) ||
+        f.toLowerCase().includes(`inc-00${requestedId.toLowerCase()}`)
+      );
+      if (match) {
+        targetFileName = match;
+      }
+    }
 
+    if (!targetFileName) {
+      targetFileName = incidentFiles[Math.floor(Math.random() * incidentFiles.length)];
+    }
+
+    const filePath = path.join(logsDirectory, targetFileName);
     const fileContent = await fs.readFile(filePath, 'utf-8');
     const lines = fileContent.split('\n').filter(line => line.trim() !== '');
 
     const stream = new ReadableStream({
       async start(controller) {
-        // Announce the file being injected
         const initPayload = { 
           id: 'init', 
-          message: `[SYSTEM] Injecting payload from: ${randomFileName}`, 
+          message: `[SYSTEM] Injecting payload from: ${targetFileName}`, 
           type: 'system' 
         };
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(initPayload)}\n\n`));
@@ -39,8 +53,7 @@ export async function GET() {
           if (line.includes('[CORE]')) type = 'alert';
           if (line.includes('[SYSTEM]') || line.includes('Llama') || line.includes('MCTS') || line.includes('DPO')) type = 'system';
 
-          // Latency: fast for filler, slower for CORE/SYSTEM actions to show "processing"
-          const delay = type === 'filler' ? Math.random() * 50 + 10 : Math.random() * 400 + 200;
+          const delay = type === 'filler' ? Math.random() * 40 + 10 : Math.random() * 300 + 150;
           await new Promise(resolve => setTimeout(resolve, delay));
 
           const payload = {

@@ -17,6 +17,8 @@ export type AttackScenario = {
   target_asset: string;
   target_ip: string;
   is_tier_1: boolean;
+  description?: string;
+  impact?: string;
   logs: LogEntry[];
   graph_execution: GraphStep[];
   persisted_memory?: string; // e.g., "Past alignment prevents blunt isolation on Tier 1"
