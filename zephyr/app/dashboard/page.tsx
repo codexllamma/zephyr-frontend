@@ -1,31 +1,66 @@
 "use client";
 
-import React from "react";
-import { useAgentStream } from "@/hooks/useAgentStream";
+import React, { useState } from "react";
+import { useIncidentStream } from "@/hooks/useIncidentStream";
 import { StrikePanel } from "@/components/dashboard/StrikePanel";
 import { FlowCanvas } from "@/components/dashboard/FlowCanvas";
 import { LogTerminal } from "@/components/dashboard/LogTerminal";
 import { Shield, Server } from "lucide-react";
+import { AttackScenario, GraphStep } from "@/types/simulation";
+import scenariosData from "@/data/scenarios.json";
 
 export default function DashboardPage() {
+  const scenarios = (scenariosData.scenarios as AttackScenario[]) || [];
+  const [selectedScenario, setSelectedScenario] = useState<AttackScenario>(
+    () => scenarios[0]
+  );
+
   const {
-    scenarios,
-    selectedScenario,
-    selectScenario,
-    mode,
-    setMode,
-    isRunning,
-    isComplete,
     activeNodeId,
-    nodeStatuses,
-    nodeDecisions,
-    currentLogs,
+    nodeStates,
+    logs,
     persistedMemory,
-    isMemoryLoaded,
-    startSimulation,
-    stopSimulation,
-    resetSimulation,
-  } = useAgentStream("INC-001");
+    isStreaming,
+    triggerIncident,
+    abortStream,
+    isLive,
+    setIsLive,
+  } = useIncidentStream("live");
+
+  const nodeStatuses: Record<string, GraphStep["status"]> = {
+    orchestrator:
+      (nodeStates.orchestrator?.status as GraphStep["status"]) || "idle",
+    reviewer: (nodeStates.reviewer?.status as GraphStep["status"]) || "idle",
+    rart: (nodeStates.rart?.status as GraphStep["status"]) || "idle",
+  };
+
+  const nodeDecisions: Record<string, string | undefined> = {
+    orchestrator: nodeStates.orchestrator?.decision,
+    reviewer: nodeStates.reviewer?.decision,
+    rart: nodeStates.rart?.decision,
+  };
+
+  const isComplete =
+    !isStreaming &&
+    Object.values(nodeStates).some(
+      (s) =>
+        s.status === "approved" ||
+        s.status === "failed" ||
+        s.status === "mutated"
+    );
+
+  const handleSelectScenario = (scenario: AttackScenario) => {
+    setSelectedScenario(scenario);
+    abortStream();
+  };
+
+  const handleStartSimulation = () => {
+    triggerIncident(selectedScenario.id);
+  };
+
+  const handleResetSimulation = () => {
+    abortStream();
+  };
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-zinc-950 text-zinc-100 font-sans flex flex-col select-none">
@@ -87,13 +122,13 @@ export default function DashboardPage() {
         <StrikePanel
           scenarios={scenarios}
           selectedScenario={selectedScenario}
-          onSelectScenario={selectScenario}
-          onStartSimulation={startSimulation}
-          onResetSimulation={resetSimulation}
-          isRunning={isRunning}
+          onSelectScenario={handleSelectScenario}
+          onStartSimulation={handleStartSimulation}
+          onResetSimulation={handleResetSimulation}
+          isRunning={isStreaming}
           isComplete={isComplete}
-          mode={mode}
-          onToggleMode={setMode}
+          mode={isLive ? "sse" : "mock"}
+          onToggleMode={(newMode) => setIsLive(newMode === "sse")}
         />
 
         {/* 2. CENTER: Vertical React Flow Pipeline Sandbox */}
@@ -103,13 +138,13 @@ export default function DashboardPage() {
           nodeStatuses={nodeStatuses}
           nodeDecisions={nodeDecisions}
           persistedMemory={persistedMemory}
-          isMemoryLoaded={isMemoryLoaded}
-          isRunning={isRunning}
+          isMemoryLoaded={!!persistedMemory}
+          isRunning={isStreaming}
           isComplete={isComplete}
         />
 
         {/* 3. RIGHT: Live Log Terminal */}
-        <LogTerminal logs={currentLogs} isRunning={isRunning} />
+        <LogTerminal logs={logs} isRunning={isStreaming} />
       </main>
     </div>
   );
