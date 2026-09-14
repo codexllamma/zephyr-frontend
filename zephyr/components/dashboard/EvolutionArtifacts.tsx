@@ -152,7 +152,7 @@ export function EvolutionArtifacts({ telemetry }: EvolutionArtifactsProps) {
         <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
           <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
             <TableProperties className="w-3.5 h-3.5 text-amber-400" />
-            3. 100-Run Macro Evolution Ledger
+            3. 300-Run Macro Evolution Ledger
           </h3>
           <span className="text-[10px] text-zinc-500">100 Incident Benchmark</span>
         </div>
